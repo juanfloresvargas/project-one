@@ -11,15 +11,14 @@ from django.utils.http import urlsafe_base64_decode
 
 UserModel = get_user_model()
 
-
 class TaskSerializer(serializers.ModelSerializer):
 
-    logs = serializers.StringRelatedField(many=True)
+    logs = serializers.StringRelatedField(many=True, required=False,)
 
     class Meta:
         model = Task
         fields = ('id', 'description', 'status',
-                  'priority', 'time', 'estimated_time', 'logs')
+                  'priority', 'time', 'estimated_time', 'create_date', 'logs')
 
 
 class TaskLogSerializer(serializers.ModelSerializer):

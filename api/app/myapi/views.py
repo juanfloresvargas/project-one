@@ -33,6 +33,11 @@ from rest_framework.viewsets import GenericViewSet
 from rest_framework.mixins import CreateModelMixin
 from django.contrib.auth import get_user_model
 from django.http import Http404
+from django_filters import rest_framework as filters
+
+from django_filters.rest_framework import DjangoFilterBackend
+
+from rest_framework.pagination import PageNumberPagination
 
 UserModel = get_user_model()
 
@@ -41,13 +46,29 @@ UserModel = get_user_model()
 logger = logging.getLogger(__name__)
 
 
+class TaskFilter(filters.FilterSet):
+    status = filters.CharFilter(lookup_expr='icontains')
+    create_date = filters.DateTimeFilter(lookup_expr='gte')
+
+    class Meta:
+        model: Task
+        fields = ('status', 'create_date')
+
+class TaskPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_params = 'page_size'
+
 class TaskViewSet(ModelViewSet):
     queryset = Task.objects.all().order_by('id')
     serializer_class = TaskSerializer
+    filterset_class = TaskFilter
+    pagination_class = TaskPagination
+
 
 class TaskLogViewSet(ModelViewSet):
     queryset = TaskLog.objects.all().order_by('id')
     serializer_class = TaskLogSerializer
+
 
 class RequestPasswordResetEmail(GenericAPIView):
     serializer_class = ResetPasswordEmailRequestSerializer
@@ -137,6 +158,7 @@ class TaskCurrentDetail(APIView):
             curserializer.save()
             return Response(curserializer.data)
         return Response(curserializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 class PasswordTokenCheckAPI(GenericAPIView):
     serializer_class = SetNewPasswordSerializer

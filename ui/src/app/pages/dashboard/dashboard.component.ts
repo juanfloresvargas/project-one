@@ -5,6 +5,8 @@ import { TasksService } from 'src/app/shared/services/tasks.service';
 
 import { CreateComponentDialog } from '../../task/create/create.component';
 
+import { forkJoin } from 'rxjs';
+
 @Component({
   selector: 'app-dashboard',
   templateUrl: './dashboard.component.html',
@@ -15,44 +17,67 @@ export class DashboardComponent implements OnInit {
   current: Task;
   totalTime = 0;
   constructor(public dialog: MatDialog,
-    private _tastsService: TasksService
+    private _tasksService: TasksService
   ) {
 
   }
-
   openCreate() {
     const dialogRef = this.dialog.open(CreateComponentDialog);
     dialogRef.afterClosed().subscribe(result => {
-      console.log(result);
+      if (result.data.status === 'progress') {
+        this.current = result.data;
+        const filteredtasks = this.tasks.filter(t => t.status === 'progress');
+        if (filteredtasks.length > 0) {
+          const rToUpdate = filteredtasks.map(fu => this._tasksService.update(fu.id, Object.assign(fu, { status: 'pending' })));
+          forkJoin(rToUpdate).subscribe(dd => {
+            this.tasks.push(result.data);
+          })
+        } else {
+          this.tasks.push(result.data);
+        }
+      }
     })
-
   }
 
-  ngOnInit(): void {
-    this._tastsService.list()
+  reloadData() {
+    this._tasksService.list()
       .subscribe(tasks => {
-        this.tasks = tasks;
-        // call endpoint the get the current stask
+
+        console.log(tasks);
+
+        this.tasks = tasks.results
         this.tasks.forEach(element => {
           if (element.status === 'progress') {
             this.current = element;
           }
         });
         this.startTimer();
-
       });
+  }
+
+  ngOnInit(): void {
+    this.reloadData();
   }
 
   continueCurrent() {
     this.current.status = 'pending';
+    this._tasksService.update(this.current.id, this.current).subscribe(result => {
+      console.log(result);
+    })
   }
 
   startCurrent() {
     this.current.status = 'progress';
+    this._tasksService.update(this.current.id, this.current).subscribe(result => {
+      console.log(result);
+    })
   }
 
   finishCurrent() {
     this.current.status = 'finished';
+    this._tasksService.update(this.current.id, this.current).subscribe(result => {
+      console.log(result);
+    })
   }
 
   startTimer() {
@@ -69,20 +94,39 @@ export class DashboardComponent implements OnInit {
   }
 
   continueTask(task) {
+    task.status = 'progress';
+    this._tasksService.update(task.id, task).subscribe(result => {
+      console.log(result);
+    });
+  }
+
+  pauseTask(task) {
     task.status = 'pending';
+    this._tasksService.update(task.id, task).subscribe(result => {
+      console.log(result);
+    });
   }
 
   startTask(task) {
     this.tasks.forEach(element => {
       if (element.status === 'progress') {
         element.status = 'pending';
+        this._tasksService.update(element.id, element).subscribe(result => {
+          console.log(result);
+        });
       }
     });
     task.status = 'progress';
     this.current = task;
+    this._tasksService.update(task.id, task).subscribe(result => {
+      console.log(result);
+    });
   }
 
   finishTask(task) {
     task.status = 'finished';
+    this._tasksService.update(task.id, task).subscribe(result => {
+      console.log(result);
+    });
   }
 }
